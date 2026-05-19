@@ -1,0 +1,17 @@
+# ============================================================
+#  AOT — Automation Orchestration Toolkit — Global Variables (Vagrant/VirtualBox)
+# ============================================================
+
+# --- Alamat IP VM (sesuai Vagrantfile, jangan diubah) ---
+wazuh_ip:   "192.168.56.10"
+iris_ip:    "192.168.56.11"
+shuffle_ip: "192.168.56.12"
+
+# --- Tool Versions ---
+wazuh_version:   "4.14.0"
+iris_version:    "v2.4.20"
+shuffle_version: "latest"
+
+# --- IRIS ---
+# Ganti password ini sebelum menjalankan vagrant up
+iris_passwd: "ChangeMe_S3cur3!"

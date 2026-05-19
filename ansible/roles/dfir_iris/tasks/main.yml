@@ -1,0 +1,47 @@
+---
+# ============================================================
+#  Role: dfir_iris
+#  Deploy DFIR-IRIS via Docker Compose
+#  Versi: v2.4.20
+# ============================================================
+
+- name: Clone IRIS repository ({{ iris_version }})
+  ansible.builtin.git:
+    repo: https://github.com/dfir-iris/iris-web.git
+    dest: /opt/iris-web
+    version: "{{ iris_version }}"
+    force: true
+
+- name: Salin .env.model ke .env
+  ansible.builtin.copy:
+    src: /opt/iris-web/.env.model
+    dest: /opt/iris-web/.env
+    mode: '0640'
+    remote_src: true
+
+- name: Set IRIS admin password di .env
+  ansible.builtin.lineinfile:
+    path: /opt/iris-web/.env
+    regexp: '^#?(IRIS_ADM_PASSWORD=.*)'
+    line: "IRIS_ADM_PASSWORD={{ iris_passwd }}"
+
+- name: Pull dan jalankan DFIR-IRIS
+  community.docker.docker_compose_v2:
+    project_src: /opt/iris-web
+    state: present
+    pull: always
+
+- name: Tunggu IRIS siap (port 443)
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: 443
+    delay: 20
+    timeout: 300
+    state: started
+
+- name: Info akses DFIR-IRIS
+  ansible.builtin.debug:
+    msg:
+      - "DFIR-IRIS URL : https://{{ iris_ip }}"
+      - "Login         : administrator / {{ iris_passwd }}"
+      - "IRIS API      : https://{{ iris_ip }}/api/v1"

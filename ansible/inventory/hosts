@@ -1,0 +1,19 @@
+# ============================================================
+#  AOT — Automation Orchestration Toolkit — Inventory Vagrant (IP statis host-only)
+#  Tidak perlu diubah selama Vagrantfile tidak dimodifikasi
+# ============================================================
+
+[all:vars]
+ansible_user=vagrant
+ansible_password=vagrant
+ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+ansible_python_interpreter=/usr/bin/python3
+
+[wazuh_server]
+192.168.56.10
+
+[dfir_iris]
+192.168.56.11
+
+[shuffle]
+192.168.56.12

@@ -1,0 +1,12 @@
+---
+# ============================================================
+#  Ansible Galaxy Collections — AOT — Automation Orchestration Toolkit (Vagrant/VirtualBox)
+#
+#  Install dengan:
+#    ansible-galaxy collection install -r requirements.yml
+# ============================================================
+collections:
+  - name: community.docker
+    version: ">=3.10.0"
+  - name: community.general
+    version: ">=9.0.0"

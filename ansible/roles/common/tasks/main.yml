@@ -1,0 +1,58 @@
+---
+# ============================================================
+#  Role: common
+#  Setup dasar yang dijalankan di semua VM sebelum role lain
+# ============================================================
+
+- name: Update APT package index
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install paket dasar
+  ansible.builtin.apt:
+    name:
+      - curl
+      - wget
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - git
+      - unzip
+      - python3
+      - python3-pip
+      - net-tools
+      - vim
+      - htop
+    state: present
+
+- name: Set timezone ke Asia/Jakarta
+  community.general.timezone:
+    name: Asia/Jakarta
+
+- name: Pastikan hostname sesuai
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname_short }}"
+
+- name: Nonaktifkan swap (dibutuhkan Wazuh Indexer & Opensearch)
+  ansible.builtin.command: swapoff -a
+  changed_when: true
+  ignore_errors: true
+
+- name: Hapus swap dari /etc/fstab secara permanen
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+    replace: '# \1'
+
+- name: Set vm.max_map_count (dibutuhkan oleh Wazuh & Shuffle)
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-aot.conf
+    content: |
+      vm.max_map_count=262144
+      net.core.somaxconn=65535
+    mode: '0644'
+
+- name: Terapkan sysctl
+  ansible.builtin.command: sysctl --system
+  changed_when: true

@@ -1,0 +1,40 @@
+---
+# ============================================================
+#  Role: shuffle
+#  Deploy Shuffle SOAR via Docker Compose
+# ============================================================
+
+- name: Clone Shuffle repository (main branch)
+  ansible.builtin.git:
+    repo: https://github.com/Shuffle/Shuffle.git
+    dest: /opt/Shuffle
+    version: main
+    force: true
+
+- name: Buat direktori shuffle-database dengan kepemilikan UID 1000
+  ansible.builtin.file:
+    path: /opt/Shuffle/shuffle-database
+    state: directory
+    owner: "1000"
+    group: "1000"
+    mode: '0755'
+
+- name: Pull dan jalankan Shuffle
+  community.docker.docker_compose_v2:
+    project_src: /opt/Shuffle
+    state: present
+    pull: always
+
+- name: Tunggu Shuffle siap (port 3443)
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: 3443
+    delay: 30
+    timeout: 360
+    state: started
+
+- name: Info akses Shuffle
+  ansible.builtin.debug:
+    msg:
+      - "Shuffle UI : https://{{ shuffle_ip }}:3443"
+      - "Buat akun admin saat akses pertama via browser"

@@ -1,0 +1,59 @@
+---
+# ============================================================
+#  AOT — Automation Orchestration Toolkit — Master Playbook (Vagrant/VirtualBox)
+#
+#  Dijalankan otomatis oleh Vagrant setelah semua VM siap.
+#  Bisa juga dijalankan manual:
+#    cd "Ansible Playbook"
+#    ansible-playbook playbook.yml
+# ============================================================
+
+# ---------- STEP 1: Wazuh Server ----------
+- name: "[1/3] Deploy Wazuh Server"
+  hosts: wazuh_server
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - docker
+    - wazuh_server_docker
+
+# ---------- STEP 2: DFIR-IRIS ----------
+- name: "[2/3] Deploy DFIR-IRIS"
+  hosts: dfir_iris
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - docker
+    - dfir_iris
+
+# ---------- STEP 3: Shuffle ----------
+- name: "[3/3] Deploy Shuffle SOAR"
+  hosts: shuffle
+  become: true
+  gather_facts: true
+  roles:
+    - common
+    - docker
+    - shuffle
+
+# ---------- Summary ----------
+- name: "[Done] Ringkasan deployment"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Tampilkan ringkasan akses semua tools
+      ansible.builtin.debug:
+        msg:
+          - "=============================================="
+          - "  AOT — Deployment Selesai!"
+          - "=============================================="
+          - "Wazuh Dashboard : https://192.168.56.10"
+          - "DFIR-IRIS       : https://192.168.56.11"
+          - "Shuffle UI      : https://192.168.56.12:3443"
+          - "=============================================="
+          - "Semua VM berjalan di VirtualBox (host-only)"
+          - "Akses hanya dari laptop ini"
+          - "=============================================="

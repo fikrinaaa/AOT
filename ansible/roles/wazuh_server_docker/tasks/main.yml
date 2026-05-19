@@ -1,0 +1,45 @@
+---
+# ============================================================
+#  Role: wazuh_server_docker
+#  Deploy Wazuh single-node via Docker Compose
+#  Versi: v4.12.0
+# ============================================================
+
+- name: Clone wazuh-docker repository (v{{ wazuh_version }})
+  ansible.builtin.git:
+    repo: https://github.com/wazuh/wazuh-docker.git
+    dest: /opt/wazuh-docker
+    version: "v{{ wazuh_version }}"
+    force: true
+
+- name: Generate sertifikat Wazuh Indexer
+  ansible.builtin.command:
+    cmd: docker compose -f generate-indexer-certs.yml run --rm generator
+    chdir: /opt/wazuh-docker/single-node
+  changed_when: true
+  register: cert_result
+
+- name: Tampilkan hasil generate sertifikat
+  ansible.builtin.debug:
+    msg: "{{ cert_result.stdout_lines | default(['(no output)']) }}"
+
+- name: Jalankan Wazuh single-node
+  community.docker.docker_compose_v2:
+    project_src: /opt/wazuh-docker/single-node
+    state: present
+    pull: always
+
+- name: Tunggu Wazuh Dashboard siap (port 443)
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: 443
+    delay: 30
+    timeout: 300
+    state: started
+
+- name: Info akses Wazuh
+  ansible.builtin.debug:
+    msg:
+      - "Wazuh Dashboard : https://{{ wazuh_ip }}"
+      - "Login           : admin / SecretPassword"
+      - "Wazuh API       : https://{{ wazuh_ip }}:55000"
