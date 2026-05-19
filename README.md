@@ -106,7 +106,7 @@ vagrant up
 # 2. Install Vagrant   → https://developer.hashicorp.com/vagrant
 # 3. Clone repo
 git clone https://github.com/fikrinaaa/AOT.git
-cd aot
+cd AOT
 
 # 4. Install Ansible collections
 ansible-galaxy collection install -r ansible/requirements.yml
@@ -207,7 +207,7 @@ ansible --version
 
 ```bash
 git clone https://github.com/fikrinaaa/AOT.git
-cd aot
+cd AOT
 ```
 
 ---
