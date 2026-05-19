@@ -105,7 +105,7 @@ vagrant up
 # 1. Install VirtualBox → https://virtualbox.org
 # 2. Install Vagrant   → https://developer.hashicorp.com/vagrant
 # 3. Clone repo
-git clone https://github.com/fikrinaaa/aot.git
+git clone https://github.com/fikrinaaa/AOT.git
 cd aot
 
 # 4. Install Ansible collections
@@ -206,7 +206,7 @@ ansible --version
 ### Langkah 4 — Clone Repository
 
 ```bash
-git clone https://github.com/fikrinaaa/aot.git
+git clone https://github.com/fikrinaaa/AOT.git
 cd aot
 ```
 
