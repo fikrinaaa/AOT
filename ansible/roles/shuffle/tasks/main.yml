@@ -11,13 +11,34 @@
     version: main
     force: true
 
-- name: Buat direktori shuffle-database dengan kepemilikan UID 1000
+- name: Bersihkan shuffle-database agar inisialisasi OpenSearch bersih
   ansible.builtin.file:
     path: /opt/Shuffle/shuffle-database
-    state: directory
+    state: "{{ item }}"
     owner: "1000"
     group: "1000"
     mode: '0755'
+  loop:
+    - absent
+    - directory
+
+- name: Set OPENSEARCH_INITIAL_ADMIN_PASSWORD di .env
+  ansible.builtin.replace:
+    path: /opt/Shuffle/.env
+    regexp: '^OPENSEARCH_INITIAL_ADMIN_PASSWORD=.*'
+    replace: 'OPENSEARCH_INITIAL_ADMIN_PASSWORD="{{ shuffle_opensearch_password }}"'
+
+- name: Set SHUFFLE_OPENSEARCH_PASSWORD di .env
+  ansible.builtin.replace:
+    path: /opt/Shuffle/.env
+    regexp: '^SHUFFLE_OPENSEARCH_PASSWORD=.*'
+    replace: 'SHUFFLE_OPENSEARCH_PASSWORD="{{ shuffle_opensearch_password }}"'
+
+- name: Kurangi heap OpenSearch agar tidak OOM (maks 1500MB)
+  ansible.builtin.replace:
+    path: /opt/Shuffle/docker-compose.yml
+    regexp: '- OPENSEARCH_JAVA_OPTS=.*'
+    replace: '- OPENSEARCH_JAVA_OPTS=-Xms1500m -Xmx1500m'
 
 - name: Pull dan jalankan Shuffle
   community.docker.docker_compose_v2:
