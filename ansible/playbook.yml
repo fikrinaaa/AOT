@@ -55,5 +55,4 @@
           - "Shuffle UI      : https://192.168.56.12:3443"
           - "=============================================="
           - "Semua VM berjalan di VirtualBox (host-only)"
-          - "Akses hanya dari laptop ini"
           - "=============================================="
