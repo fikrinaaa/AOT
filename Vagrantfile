@@ -29,8 +29,8 @@ Vagrant.configure("2") do |config|
     wazuh.vm.network "private_network", ip: "192.168.56.10"
     wazuh.vm.provider "virtualbox" do |vb|
       vb.name   = "aot-wazuh"
-      vb.memory = 6144
-      vb.cpus   = 2
+      vb.memory = 8192
+      vb.cpus   = 4
       vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       vb.customize ["modifyvm", :id, "--ioapic", "on"]
     end
@@ -49,7 +49,7 @@ Vagrant.configure("2") do |config|
     iris.vm.network "private_network", ip: "192.168.56.11"
     iris.vm.provider "virtualbox" do |vb|
       vb.name   = "aot-iris"
-      vb.memory = 3072
+      vb.memory = 4096
       vb.cpus   = 2
       vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       vb.customize ["modifyvm", :id, "--ioapic", "on"]
@@ -70,7 +70,7 @@ Vagrant.configure("2") do |config|
     shuffle.vm.network "private_network", ip: "192.168.56.12"
     shuffle.vm.provider "virtualbox" do |vb|
       vb.name   = "aot-shuffle"
-      vb.memory = 3072
+      vb.memory = 4092
       vb.cpus   = 2
       vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       vb.customize ["modifyvm", :id, "--ioapic", "on"]
