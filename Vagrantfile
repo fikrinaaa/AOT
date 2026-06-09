@@ -63,6 +63,8 @@ Vagrant.configure("2") do |config|
 
   # ══════════════════════════════════════════
   #  VM 3 — Shuffle
+  #  RAM dinaikkan ke 6GB agar OpenSearch bisa
+  #  pakai heap default 3072m tanpa OOM
   #  Ansible dijalankan DI SINI setelah VM ke-3 siap
   # ══════════════════════════════════════════
   config.vm.define "shuffle" do |shuffle|
@@ -70,7 +72,7 @@ Vagrant.configure("2") do |config|
     shuffle.vm.network "private_network", ip: "192.168.56.12"
     shuffle.vm.provider "virtualbox" do |vb|
       vb.name   = "aot-shuffle"
-      vb.memory = 4092
+      vb.memory = 8192
       vb.cpus   = 2
       vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       vb.customize ["modifyvm", :id, "--ioapic", "on"]
