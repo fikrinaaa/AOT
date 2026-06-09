@@ -2,8 +2,13 @@
 # ============================================================
 #  Role: shuffle
 #  Deploy Shuffle SOAR via Docker Compose
-# ============================================================
+#
+#  Referensi: https://github.com/Shuffle/Shuffle/blob/main/docker-compose.yml
+#             https://github.com/Shuffle/Shuffle/blob/main/.github/install-guide.md
+#             https://github.com/Shuffle/shuffle-docs/blob/master/docs/configuration.md
+#
 
+# ── Clone ──────────────────────────────────────────────────
 - name: Clone Shuffle repository (main branch)
   ansible.builtin.git:
     repo: https://github.com/Shuffle/Shuffle.git
@@ -11,46 +16,97 @@
     version: main
     force: true
 
-- name: Bersihkan shuffle-database agar inisialisasi OpenSearch bersih
+# ── Persiapan shuffle-database ─────────────────────────────
+- name: Buat direktori shuffle-database jika belum ada
   ansible.builtin.file:
     path: /opt/Shuffle/shuffle-database
-    state: "{{ item }}"
+    state: directory
+    mode: '0755'
+
+- name: Set kepemilikan shuffle-database ke UID/GID 1000 (opensearch user)
+  ansible.builtin.file:
+    path: /opt/Shuffle/shuffle-database
     owner: "1000"
     group: "1000"
-    mode: '0755'
-  loop:
-    - absent
-    - directory
+    recurse: true
 
-- name: Set OPENSEARCH_INITIAL_ADMIN_PASSWORD di .env
-  ansible.builtin.replace:
-    path: /opt/Shuffle/.env
-    regexp: '^OPENSEARCH_INITIAL_ADMIN_PASSWORD=.*'
-    replace: 'OPENSEARCH_INITIAL_ADMIN_PASSWORD="{{ shuffle_opensearch_password }}"'
-
+# ── Konfigurasi .env ───────────────────────────────────────
 - name: Set SHUFFLE_OPENSEARCH_PASSWORD di .env
   ansible.builtin.replace:
     path: /opt/Shuffle/.env
     regexp: '^SHUFFLE_OPENSEARCH_PASSWORD=.*'
-    replace: 'SHUFFLE_OPENSEARCH_PASSWORD="{{ shuffle_opensearch_password }}"'
+    replace: 'SHUFFLE_OPENSEARCH_PASSWORD={{ shuffle_opensearch_password }}'
 
-- name: Kurangi heap OpenSearch agar tidak OOM (maks 1500MB)
-  ansible.builtin.replace:
-    path: /opt/Shuffle/docker-compose.yml
-    regexp: '- OPENSEARCH_JAVA_OPTS=.*'
-    replace: '- OPENSEARCH_JAVA_OPTS=-Xms1500m -Xmx1500m'
+# ── Docker Swarm init ──────────────────────────────────────
+- name: Cek status Docker Swarm
+  ansible.builtin.command: docker info --format '{{ "{{" }}.Swarm.LocalNodeState{{ "}}" }}'
+  register: swarm_state
+  changed_when: false
 
+- name: Inisialisasi Docker Swarm (jika belum aktif)
+  ansible.builtin.command:
+    cmd: docker swarm init --advertise-addr {{ shuffle_ip }}
+  when: swarm_state.stdout | trim != "active"
+  changed_when: true
+
+# ── Jalankan Shuffle ───────────────────────────────────────
 - name: Pull dan jalankan Shuffle
   community.docker.docker_compose_v2:
     project_src: /opt/Shuffle
     state: present
     pull: always
 
-- name: Tunggu Shuffle siap (port 3443)
+# ── Tunggu OpenSearch ready ────────────────────────────────
+- name: Tunggu OpenSearch siap di port 9200
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: 9200
+    delay: 30
+    timeout: 300
+    state: started
+
+# ── Buat overlay network untuk Orborus ────────────────────
+- name: Cek apakah network shuffle_swarm_executions sudah ada
+  ansible.builtin.command: docker network inspect shuffle_swarm_executions
+  register: net_check
+  changed_when: false
+  failed_when: false
+
+- name: Hapus network lama jika scope-nya bukan swarm
+  ansible.builtin.shell: |
+    SCOPE=$(docker network inspect shuffle_swarm_executions --format '{{ "{{" }}.Scope{{ "}}" }}' 2>/dev/null)
+    if [ "$SCOPE" != "swarm" ]; then
+      docker network disconnect shuffle_swarm_executions shuffle-backend 2>/dev/null || true
+      docker network disconnect shuffle_swarm_executions shuffle-orborus 2>/dev/null || true
+      docker network disconnect shuffle_swarm_executions tenzir-node 2>/dev/null || true
+      docker network rm shuffle_swarm_executions 2>/dev/null || true
+      echo "removed"
+    else
+      echo "already_overlay"
+    fi
+  when: net_check.rc == 0
+  register: net_cleanup
+  changed_when: "'removed' in net_cleanup.stdout"
+
+- name: Buat overlay network shuffle_swarm_executions
+  ansible.builtin.command:
+    cmd: docker network create --driver overlay --attachable shuffle_swarm_executions
+  register: net_create
+  changed_when: net_create.rc == 0
+  failed_when: net_create.rc != 0 and "already exists" not in net_create.stderr
+
+# ── Restart Orborus ────────────────────────────────────────
+- name: Restart Orborus agar pakai overlay network yang baru
+  ansible.builtin.command: docker restart shuffle-orborus
+  changed_when: true
+  ignore_errors: true
+
+# ── Tunggu Shuffle UI siap ─────────────────────────────────
+- name: Tunggu Shuffle UI siap di port 3443
   ansible.builtin.wait_for:
     host: "127.0.0.1"
     port: 3443
-    delay: 30
+    delay: 20
     timeout: 360
     state: started
 
