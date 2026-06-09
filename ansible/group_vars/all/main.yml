@@ -15,3 +15,7 @@ shuffle_version: "latest"
 # --- IRIS ---
 # Ganti password ini sebelum menjalankan vagrant up
 iris_passwd: "ChangeMe_S3cur3!"
+
+# --- Shuffle / OpenSearch ---
+# Password ini dipakai untuk SHUFFLE_OPENSEARCH_PASSWORD di .env
+shuffle_opensearch_password: "AOTShufflePass2026!"
