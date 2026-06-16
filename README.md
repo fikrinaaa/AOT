@@ -28,16 +28,16 @@ AOT adalah **otomasi deployment platform SOC (Security Operations Center)**. Ali
 vagrant up
 ```
 
-Dengan itu. Tiga VM akan dibuat, Docker diinstall, dan semua tools berjalan otomatis.
+Dengan itu, tiga VM akan dibuat, Docker diinstall, dan semua tools berjalan otomatis. AOT juga dilengkapi workflow respons insiden otomatis yang menangani alert apa pun selama memiliki indikator IP sumber — mulai dari triase, pemeriksaan reputasi ke VirusTotal, dokumentasi case di IRIS, hingga pemblokiran IP melalui Wazuh Active Response setelah disetujui analis.
 
 ### 🧩 Stack Tools
 
 | Tool | Versi | Peran |
 |------|-------|-------|
-| [**Wazuh**](https://wazuh.com) | v4.12.0 | SIEM — Deteksi & monitoring ancaman real-time |
+| [**Wazuh**](https://wazuh.com) | v4.14.0 | SIEM — Deteksi & monitoring ancaman real-time |
 | [**DFIR-IRIS**](https://dfir-iris.org) | v2.4.20 | Case Management — Pencatatan & pengelolaan insiden |
 | [**Shuffle**](https://shuffler.io) | Latest | SOAR — Otomasi workflow respons insiden |
-| [**Telegram Bot**](https://core.telegram.org/bots) | — | Notifikasi alert & laporan ke tim |
+| [**Telegram Bot**](https://core.telegram.org/bots) | — | Notifikasi alert & permintaan approval ke analis |
 
 ---
 
@@ -55,7 +55,7 @@ Dengan itu. Tiga VM akan dibuat, Docker diinstall, dan semua tools berjalan otom
 │  │                  192.168.56.0/24                 │   │
 │  │                                                  │   │
 │  │  ┌──────────────┐  ┌──────────────┐  ┌────────┐  │   │
-│  │  │respin-wazuh  │  │ respin-iris  │  │respin- │  │   │
+│  │  │ aot-wazuh    │  │ aot-iris     │  │aot-    │  │   │
 │  │  │192.168.56.10 │  │192.168.56.11 │  │shuffle │  │   │
 │  │  │              │  │              │  │.56.12  │  │   │
 │  │  │  🔍 Wazuh   │  │  📋 IRIS    │  │⚡Shuf  │  │   │
@@ -83,6 +83,34 @@ vagrant up
                                               semua VM lainnya
 ```
 
+### Alur Workflow Respons Insiden
+
+```
+Wazuh Alert (webhook)
+    │
+    ▼
+Detection Workflow ──┬──► Notification Workflow  (notif awal ke Telegram)
+                      │
+                      └──► Triage and Analysis Workflow
+                                  │
+                                  ├─ Create Case (IRIS)
+                                  ├─ Cek reputasi IP (VirusTotal)
+                                  ├─ Tambah IOC ke case (IRIS)
+                                  │
+                                  ▼
+                           Send User Input
+                           (analis memilih Lanjutkan / Hentikan)
+                                  │
+                ┌─────────────────┴─────────────────┐
+                ▼                                     ▼
+        Lanjutkan                              Hentikan
+                │                                     │
+                ▼                                     ▼
+   Response and Reporting Workflow          Workflow berhenti
+   (Wazuh Active Response: firewall-drop    (instruksi tutup case
+    + notifikasi ringkasan ke Telegram)      sudah ada di pesan)
+```
+
 ---
 
 ## 💻 Spesifikasi
@@ -91,9 +119,9 @@ vagrant up
 
 | VM | IP | RAM | CPU | Tool |
 |----|----|-----|-----|------|
-| `aot-wazuh` | 192.168.56.10 | 6 GB | 2 core | Wazuh Server |
-| `aot-iris` | 192.168.56.11 | 3 GB | 2 core | DFIR-IRIS |
-| `aot-shuffle` | 192.168.56.12 | 3 GB | 2 core | Shuffle SOAR |
+| `aot-wazuh` | 192.168.56.10 | 8 GB | 4 core | Wazuh Server |
+| `aot-iris` | 192.168.56.11 | 4 GB | 2 core | DFIR-IRIS |
+| `aot-shuffle` | 192.168.56.12 | 8 GB | 2 core | Shuffle SOAR |
 
 ---
 
@@ -151,6 +179,7 @@ Vagrant adalah tool yang mengotomasi pembuatan VM dan menghubungkannya dengan An
 2. Pilih installer sesuai OS
 3. Jalankan installer
 4. Verifikasi — buka terminal baru dan ketik:
+
 ```bash
 vagrant --version
 # Output: Vagrant 2.x.x
@@ -165,9 +194,11 @@ vagrant --version
 #### Windows — Setup WSL2
 
 Buka PowerShell sebagai Administrator:
+
 ```powershell
 wsl --install
 ```
+
 Restart laptop. Setelah restart, buka **Ubuntu** dari Start Menu dan buat username + password Linux kamu.
 
 Lanjutkan langkah berikut di dalam terminal Ubuntu (WSL):
@@ -243,7 +274,7 @@ Proses yang terjadi secara otomatis:
     ├── docker  : install Docker Engine + Compose Plugin
     ├── wazuh   : clone wazuh-docker, generate sertifikat, docker compose up
     ├── iris    : clone iris-web, konfigurasi .env, docker compose up
-    └── shuffle : clone Shuffle, docker compose up
+    └── shuffle : clone Shuffle, docker swarm init, docker compose up
 [7] Tampilkan ringkasan URL akses
 ```
 
@@ -269,6 +300,7 @@ ok: [localhost] => {
 ## 🔐 Akses Tools
 
 ### Wazuh Dashboard
+
 ```
 URL      : https://192.168.56.10
 Username : admin
@@ -276,6 +308,7 @@ Password : SecretPassword
 ```
 
 ### DFIR-IRIS
+
 ```
 URL      : https://192.168.56.11
 Username : administrator
@@ -283,6 +316,7 @@ Password : sesuai iris_passwd di ansible/group_vars/all/main.yml
 ```
 
 ### Shuffle SOAR
+
 ```
 URL      : https://192.168.56.12:3443
 Buat akun admin saat akses pertama via browser
@@ -290,9 +324,9 @@ Buat akun admin saat akses pertama via browser
 
 ---
 
-## 📲 Setup Telegram Bot (Notifikasi)
+## 📲 Setup Telegram Bot (Notifikasi & Approval)
 
-Shuffle mengirimkan notifikasi alert dan laporan ke grup Telegram tim.
+Shuffle mengirimkan notifikasi alert dan permintaan approval ke grup Telegram tim.
 
 ### Buat Bot via BotFather
 
@@ -313,18 +347,20 @@ Shuffle mengirimkan notifikasi alert dan laporan ke grup Telegram tim.
 
 1. Login ke Shuffle → menu **Apps** → cari `Telegram_Bot` → **Authenticate** → masukkan Bot Token
 2. Import workflow dari folder `Shuffle Workflow/`
-3. Buka **Workflow 2** → klik node `Send_Alert_Notification` → isi `chat_id`
-4. Buka **Workflow 5** → klik node `Send_Report_Telegram` → isi `chat_id`
+3. Buka **AOT Phase 1 - Notification Workflow** → klik node `Send_Alert_Notification` → isi `chat_id`
+4. Buka **AOT Phase 2 - Triage and Analysis Workflow** → klik node `Send_Notification` → isi `chat_id`
+5. Buka **AOT Phase 3 - Send User Input** → klik node `Send_Trigger` → isi `chat_id`
+6. Buka **AOT Phase 4 - Response and Reporting Workflow** → klik node `Response_Notification` → isi `chat_id`
 
 ---
 
 ## 🔗 Integrasi Antar Tools
 
-### Wazuh → Shuffle (Webhook)
+### Wazuh → Shuffle (Webhook + Active Response)
 
-1. Di Shuffle, buka **Workflow 1** → klik node `start_node` → salin **Webhook URL**
-
+1. Di Shuffle, buka **AOT Core - Detection Workflow** → klik node webhook → salin **Webhook URL**
 2. SSH ke VM Wazuh:
+
 ```bash
 vagrant ssh wazuh
 docker exec -it single-node-wazuh.manager-1 bash
@@ -332,27 +368,82 @@ nano /var/ossec/etc/ossec.conf
 ```
 
 3. Tambahkan di dalam `<ossec_config>`:
+
 ```xml
+<!-- Integrasi Shuffle: meneruskan alert ke webhook -->
 <integration>
   <name>shuffle</name>
   <hook_url>https://192.168.56.12:3443/api/v1/hooks/<ID-WEBHOOK></hook_url>
-  <level>7</level>
+  <level>3</level>
   <alert_format>json</alert_format>
   <options>SSL_VERIFY=false</options>
 </integration>
+
+<!-- Definisi command Active Response firewall-drop -->
+<command>
+  <name>firewall-drop</name>
+  <executable>firewall-drop</executable>
+  <timeout_allowed>yes</timeout_allowed>
+</command>
+
+<!-- Izinkan firewall-drop dieksekusi via API eksternal (Shuffle) -->
+<active-response>
+  <command>firewall-drop</command>
+  <location>local</location>
+  <timeout>no</timeout>
+</active-response>
 ```
 
+> `firewall-drop` adalah skrip Active Response bawaan Wazuh, sudah tersedia di setiap agent tanpa instalasi tambahan. Blok `<active-response>` di atas yang memungkinkan command ini dipicu dari luar (API/Shuffle), bukan hanya dari rule lokal Wazuh.
+
 4. Restart Wazuh Manager:
+
 ```bash
 /var/ossec/bin/wazuh-control restart
 exit && exit
 ```
 
+### Shuffle → Wazuh (Active Response API)
+
+Node Active Response di Shuffle membutuhkan JWT token Wazuh sebagai autentikasi. Karena token memiliki masa berlaku, lifetime-nya perlu diperpanjang agar tidak sering expired.
+
+1. SSH ke VM Wazuh:
+
+```bash
+vagrant ssh wazuh
+
+# Dapatkan token awal
+TOKEN=$(curl -k -u 'wazuh-wui:<PASSWORD_API_WAZUH>' \
+  "https://192.168.56.10:55000/security/user/authenticate?raw=true")
+
+# Perpanjang lifetime token (praktis tidak expire)
+curl -k -X PUT "https://192.168.56.10:55000/security/config" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"auth_token_exp_timeout": 99999999}'
+
+# Generate token baru dengan lifetime panjang
+curl -k -u 'wazuh-wui:<PASSWORD_API_WAZUH>' \
+  "https://192.168.56.10:55000/security/user/authenticate?raw=true"
+```
+
+2. Salin token yang dihasilkan (`eyJ...`)
+3. Di Shuffle: menu **Apps** → `Wazuh` → **Authenticate** → isi URL `https://192.168.56.10:55000` dan field `apikey` dengan token tersebut → **Save**
+4. Buka **AOT Phase 4 - Response and Reporting Workflow** → pastikan node `Wazuh_1` (Get Login) dan `Wazuh_2` (Active Response) menggunakan authentication Wazuh yang baru dibuat
+
+> Token perlu di-generate ulang apabila VM Wazuh di-restart. Ulangi langkah generate token di atas dan update authentication di Shuffle.
+
 ### Shuffle → DFIR-IRIS (API)
 
 1. Di IRIS: klik ikon user → **My profile** → **Generate API Key** → salin key
 2. Di Shuffle: menu **Apps** → `IRIS_v2` → **Authenticate** → isi URL `https://192.168.56.11` dan API Key
-3. Buka **Workflow 3** → pastikan node `Create_Case` terhubung ke authentication IRIS → aktifkan workflow
+3. Buka **AOT Phase 2 - Triage and Analysis Workflow** → pastikan node `Create_Case` dan `Add_IOC_IP` terhubung ke authentication IRIS → aktifkan workflow
+
+### Shuffle → VirusTotal (API)
+
+1. Daftar/login di https://www.virustotal.com → profil → **API Key** → salin key
+2. Di Shuffle: menu **Apps** → `VirusTotal` → **Authenticate** → masukkan API Key
+3. Buka **AOT Phase 2 - Triage and Analysis Workflow** → pastikan node `IP_Analysis` terhubung ke authentication VirusTotal
 
 ---
 
@@ -393,11 +484,11 @@ aot/
 │       ├── dfir_iris/                 ← deploy DFIR-IRIS
 │       └── shuffle/                   ← deploy Shuffle
 └── Shuffle Workflow/
-    ├── 1_Detection Workflow.json
-    ├── 2_Notification Workflow.json   ← Telegram alert
-    ├── 3_Triage and Analysis Workflow.json
-    ├── 4_Response Workflow.json
-    └── 5_Reporting Workflow.json      ← Telegram laporan
+    ├── AOT_Core_Detection_Workflow.json
+    ├── AOT_Phase1_Notification_Workflow.json       ← Telegram alert awal
+    ├── AOT_Phase2_Triage_and_Analysis_Workflow.json
+    ├── AOT_Phase3_Send_User_Input.json             ← approval analis
+    └── AOT_Phase4_Response_Workflow.json           ← Active Response + laporan
 ```
 
 ---
@@ -408,8 +499,8 @@ aot/
 <summary><b>Berapa lama proses vagrant up?</b></summary>
 
 Pertama kali: 30–60 menit (tergantung kecepatan internet, karena download image Docker cukup besar).
-Selanjutnya `vagrant halt` → `vagrant up` hanya butuh ~2–3 menit karena VM sudah ada.
 
+Selanjutnya `vagrant halt` → `vagrant up` hanya butuh ~2–3 menit karena VM sudah ada.
 </details>
 
 <details>
@@ -420,7 +511,6 @@ Tidak secara default — network host-only hanya bisa diakses dari laptop yang m
 ```ruby
 wazuh.vm.network "public_network", bridge: "Ethernet"
 ```
-
 </details>
 
 <details>
@@ -435,10 +525,29 @@ vagrant up shuffle
 ```
 
 Atau tambahkan di Vagrantfile:
+
 ```ruby
 config.vm.boot_timeout = 600
 ```
+</details>
 
+<details>
+<summary><b>Active Response gagal dengan pesan "AR command was not sent to any agent"</b></summary>
+
+Pesan ini muncul saat tidak ada Wazuh agent yang terdaftar dan aktif di Manager. Cek agent yang terdaftar:
+
+```bash
+vagrant ssh wazuh
+docker exec -it single-node-wazuh.manager-1 /var/ossec/bin/agent_control -l
+```
+
+Pastikan juga IP atau ID agent pada `agents_list` di node Active Response sesuai dengan agent yang benar-benar terdaftar.
+</details>
+
+<details>
+<summary><b>Kenapa Triage Workflow tidak punya kondisi berdasarkan Rule ID?</b></summary>
+
+Triage Workflow dirancang generik — setiap alert yang masuk dan memiliki field `data.srcip` akan diproses sama: dicek ke VirusTotal, didokumentasikan ke IRIS, lalu diteruskan ke analis untuk keputusan. Pendekatan ini menghindari kebutuhan mendefinisikan skenario serangan satu per satu, dan menjadikan VirusTotal sebagai penentu objektif apakah IP tersebut layak diblokir.
 </details>
 
 <details>
@@ -452,10 +561,10 @@ iris_version:  "v2.4.20"  # ganti ke versi terbaru
 ```
 
 Lalu jalankan:
+
 ```bash
 vagrant provision
 ```
-
 </details>
 
 ---
@@ -472,7 +581,5 @@ vagrant provision
 ---
 
 <div align="center">
-
 Made with ❤️
-
 </div>
