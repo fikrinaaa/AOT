@@ -86,6 +86,8 @@ Vagrant.configure("2") do |config|
     SHELL
 
     shuffle.vm.provision "ansible_local" do |ansible|
+      ansible.galaxy_command     = "ansible-galaxy collection install -r %{role_file}"
+      ansible.galaxy_role_file   = "ansible/requirements.yml"
       ansible.playbook           = "ansible/playbook.yml"
       ansible.inventory_path     = "ansible/inventory/hosts"
       ansible.limit              = "all"
