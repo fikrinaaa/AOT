@@ -136,10 +136,7 @@ Detection Workflow ──┬──► Notification Workflow  (notif awal ke Tele
 git clone https://github.com/fikrinaaa/AOT.git
 cd AOT
 
-# 4. Install Ansible collections
-ansible-galaxy collection install -r ansible/requirements.yml
-
-# 5. Jalankan!
+# 4. Jalankan!
 vagrant up
 ```
 
@@ -187,54 +184,7 @@ vagrant --version
 
 ---
 
-### Langkah 3 — Install Ansible
-
-> **Prasyarat Khusus Pengguna Windows:** Ansible tidak bisa diinstall langsung di Windows. Gunakan **WSL2** (Windows Subsystem for Linux). Ikuti langkah di bawah.
-
-#### Windows — Setup WSL2
-
-Buka PowerShell sebagai Administrator:
-
-```powershell
-wsl --install
-```
-
-Restart laptop. Setelah restart, buka **Ubuntu** dari Start Menu dan buat username + password Linux kamu.
-
-Lanjutkan langkah berikut di dalam terminal Ubuntu (WSL):
-
-```bash
-# Aktifkan interop WSL agar bisa jalankan Vagrant dari WSL
-sudo sh -c 'echo :WSLInterop:M::MZ::/init:PF > /proc/sys/fs/binfmt_misc/register'
-
-# Buat permanen
-echo '[interop]
-enabled=true
-appendWindowsPath=true' | sudo tee /etc/wsl.conf
-
-# Restart WSL — jalankan di PowerShell:
-# wsl --shutdown
-# Lalu buka kembali Ubuntu WSL
-```
-
-#### Semua OS — Install Ansible
-
-```bash
-# Linux / WSL (Ubuntu/Debian)
-sudo apt update && sudo apt install -y python3-pip
-sudo apt install ansible-core -y
-
-# macOS
-brew install python3
-pip3 install ansible
-
-# Verifikasi
-ansible --version
-```
-
----
-
-### Langkah 4 — Clone Repository
+### Langkah 3 — Clone Repository
 
 ```bash
 git clone https://github.com/fikrinaaa/AOT.git
@@ -243,19 +193,7 @@ cd AOT
 
 ---
 
-### Langkah 5 — Install Ansible Collections
-
-```bash
-ansible-galaxy collection install -r ansible/requirements.yml
-```
-
-Collections yang diinstall:
-- `community.docker` — untuk mengelola Docker Compose via Ansible
-- `community.general` — tools umum (timezone, hostname, dll)
-
----
-
-### Langkah 6 — Jalankan!
+### Langkah 4 — Jalankan!
 
 ```bash
 vagrant up
