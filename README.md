@@ -517,7 +517,22 @@ vagrant provision
 - [Ansible Documentation](https://docs.ansible.com/)
 
 ---
+---
+
+<div align="center">
+
+### 👨‍💻 Author
+
+**Fikri Nabil Abiyyu**
+
+For more information, collaboration, or inquiries:
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Fikri%20Nabil%20Abiyyu-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/fikrina20/)
+
+</div>
 
 <div align="center">
 Made with ❤️
 </div>
+
+
